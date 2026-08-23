@@ -6,6 +6,7 @@ langgraph
 langchain-groq
 langchain-community
 duckduckgo-search
+ddgs
 wikipedia
 requests
 langchain-experimental
