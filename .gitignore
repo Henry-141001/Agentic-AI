@@ -1,0 +1,10 @@
+# Secrets - never commit these
+.env
+*.env
+credentials.json
+token_gmail.json
+token_drive.json
+
+# Python
+__pycache__/
+*.py[oc]

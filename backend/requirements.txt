@@ -1,0 +1,15 @@
+fastapi
+uvicorn
+python-dotenv
+langchain
+langgraph
+langchain-groq
+langchain-community
+duckduckgo-search
+wikipedia
+requests
+langchain-experimental
+google-api-python-client
+google-auth-oauthlib
+google-auth-httplib2
+langchain-google-community
