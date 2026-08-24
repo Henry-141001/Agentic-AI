@@ -14,10 +14,7 @@ from langchain_experimental.tools import PythonREPLTool
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 from langchain_google_community import GmailToolkit
-from langchain_google_community.gmail.utils import (
-    build_resource_service,
-    get_gmail_credentials
-)
+from langchain_google_community.gmail.utils import build_resource_service
 
 load_dotenv()
 
@@ -83,49 +80,30 @@ python_tool = PythonREPLTool(
 
 # Gmail + Google Drive (read/send emails, list/upload files)
 #
-# Logging in to Google opens a browser and PAUSES the server until you
-# approve access, so this only runs when you set
-# ENABLE_PERSONAL_ASSISTANT=true in backend/.env (see README). Until then,
-# the Personal Assistant Agent stays disabled and the rest of the app
-# (Research + Python agents) starts normally.
+# Unlike the other tools, these can't be set up once and left running -
+# nobody is connected to Google yet when the server starts. `google_state`
+# holds whatever is currently connected; it starts empty and gets filled in
+# by the /auth/callback route in oauth.py once you log in through
+# /auth/login (see README). Works the same way locally and on Render.
 
-gmail_tools = []
-drive_service = None
+google_state = {
+    "gmail_tools": [],
+    "drive_service": None,
+}
 
-if os.getenv("ENABLE_PERSONAL_ASSISTANT", "false").lower() == "true":
 
-    try:
+def connect_google_account(credentials):
+    """Called by oauth.py right after a successful Google login."""
 
-        gmail_credentials = get_gmail_credentials(
-            token_file="token_gmail.json",
-            scopes=["https://mail.google.com/"],
-            client_sercret_file="credentials.json",
-        )
+    gmail_api_resource = build_resource_service(credentials=credentials)
+    gmail_toolkit = GmailToolkit(api_resource=gmail_api_resource)
+    google_state["gmail_tools"] = gmail_toolkit.get_tools()
 
-        gmail_api_resource = build_resource_service(credentials=gmail_credentials)
-
-        gmail_toolkit = GmailToolkit(api_resource=gmail_api_resource)
-
-        gmail_tools = gmail_toolkit.get_tools()
-
-        drive_credentials = get_gmail_credentials(
-            token_file="token_drive.json",
-            scopes=["https://www.googleapis.com/auth/drive"],
-            client_sercret_file="credentials.json",
-        )
-
-        drive_service = build(
-            "drive",
-            "v3",
-            credentials=drive_credentials
-        )
-
-    except Exception as error:
-
-        print(
-            "Gmail/Drive login failed, Personal Assistant Agent tools are "
-            f"disabled for now ({error})"
-        )
+    google_state["drive_service"] = build(
+        "drive",
+        "v3",
+        credentials=credentials
+    )
 
 
 @tool
@@ -134,8 +112,8 @@ def upload_file(file_path: str) -> str:
     Upload a file to Google Drive. Pass the file path.
     """
 
-    if drive_service is None:
-        return "Google Drive is not connected yet."
+    if google_state["drive_service"] is None:
+        return "Google Drive is not connected yet. Visit /auth/login to connect."
 
     metadata = {
         "name": os.path.basename(file_path)
@@ -143,7 +121,7 @@ def upload_file(file_path: str) -> str:
 
     media = MediaFileUpload(file_path)
 
-    file = drive_service.files().create(
+    file = google_state["drive_service"].files().create(
         body=metadata,
         media_body=media,
         fields="id"
@@ -158,10 +136,10 @@ def list_drive_files() -> str:
     List files from Google Drive.
     """
 
-    if drive_service is None:
-        return "Google Drive is not connected yet."
+    if google_state["drive_service"] is None:
+        return "Google Drive is not connected yet. Visit /auth/login to connect."
 
-    results = drive_service.files().list(
+    results = google_state["drive_service"].files().list(
         pageSize=10,
         fields="files(id,name)"
     ).execute()
@@ -196,4 +174,12 @@ python_tools = [
     python_tool
 ]
 
-personal_tools = gmail_tools + drive_tools
+
+def get_personal_tools():
+    """
+    Whatever Gmail tools are currently connected, plus the Drive tools
+    (which check the connection themselves). Called fresh each time, since
+    Gmail only becomes available after a successful /auth/login.
+    """
+
+    return google_state["gmail_tools"] + drive_tools

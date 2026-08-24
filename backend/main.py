@@ -11,13 +11,16 @@ from typing_extensions import TypedDict
 
 from langchain_core.messages import HumanMessage
 
-from agents import research_agent, python_agent, personal_agent
+from agents import research_agent, python_agent, get_personal_agent
+from oauth import router as oauth_router
 
 # FastAPI
 
 app = FastAPI(
     title="Multi Agent AI Assistant"
 )
+
+app.include_router(oauth_router)
 
 # State
 
@@ -52,7 +55,7 @@ def python_node(state):
 
 def personal_node(state):
 
-    result = personal_agent.invoke({
+    result = get_personal_agent().invoke({
         "messages": state["messages"]
     })
 

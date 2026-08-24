@@ -29,12 +29,22 @@ if "thread_id" not in st.session_state:
 if st.sidebar.button("New Chat"):
 
     st.session_state.thread_id = str(
-        uuid.uuid4()    
+        uuid.uuid4()
     )
 
     st.session_state.messages = []
 
     st.rerun()
+
+st.sidebar.markdown("---")
+st.sidebar.link_button(
+    "🔗 Connect Google Account",
+    f"{API_URL}/auth/login"
+)
+st.sidebar.caption(
+    "Needed for the Personal Assistant Agent (Gmail/Drive). "
+    "Opens a Google login page in a new tab."
+)
 
 # UI CHAT HISTORY
 

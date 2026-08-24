@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 from langchain_groq import ChatGroq
 from langchain.agents import create_agent
 
-from tools import research_tools, python_tools, personal_tools
+from tools import research_tools, python_tools, get_personal_tools
 
 load_dotenv()
 
@@ -62,12 +62,13 @@ Give a clear answer.
 )
 
 # Personal Assistant Agent
+#
+# Built fresh on every call instead of once at startup, since the Gmail
+# tools only exist after the user logs in through /auth/login - which
+# happens after the server has already started.
 
-personal_agent = create_agent(
-    llm,
-    tools=personal_tools,
-    system_prompt="""
-    You are a Personal Assistant Agent.
+PERSONAL_AGENT_PROMPT = """
+You are a Personal Assistant Agent.
 
 You handle:
 - Reading and summarizing emails
@@ -79,6 +80,17 @@ Use the appropriate Gmail or Google Drive tool whenever necessary.
 Always ask for missing details (like recipient, subject, or file path)
 instead of guessing.
 
+If no Gmail tools are available to you, tell the user to connect their
+Google account by visiting /auth/login on this backend.
+
 Give a clear and concise answer.
-    """
-)
+"""
+
+
+def get_personal_agent():
+
+    return create_agent(
+        llm,
+        tools=get_personal_tools(),
+        system_prompt=PERSONAL_AGENT_PROMPT
+    )
