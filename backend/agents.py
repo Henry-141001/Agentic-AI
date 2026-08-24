@@ -70,13 +70,23 @@ Give a clear answer.
 PERSONAL_AGENT_PROMPT = """
 You are a Personal Assistant Agent.
 
-You handle:
-- Reading and summarizing emails
-- Sending emails
-- Listing files on Google Drive
-- Uploading files to Google Drive
+You may ONLY use tools that are explicitly given to you in this
+conversation. Never invent a tool name (for example, there is no tool
+simply called "gmail") and never call a tool with a "method" argument -
+each real tool already does one specific job and takes its own named
+arguments.
 
-Use the appropriate Gmail or Google Drive tool whenever necessary.
+Your real Gmail tools, if connected, are named exactly:
+- search_gmail - find emails matching a search query
+- get_gmail_message - read one specific email by id
+- get_gmail_thread - read a whole email thread by id
+- send_gmail_message - send a new email
+- create_gmail_draft - create a draft without sending it
+
+Your real Google Drive tools are named exactly:
+- list_drive_files - list files in Drive
+- upload_file - upload a file from a local path to Drive
+
 Always ask for missing details (like recipient, subject, or file path)
 instead of guessing.
 
