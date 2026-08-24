@@ -27,12 +27,21 @@ app.include_router(oauth_router)
 class AgentState(TypedDict):
     messages: Annotated[list, add_messages]
 
+# Only the most recent messages get sent to the LLM each turn. Tool
+# results (especially Gmail/Drive content) get added to the shared history
+# and would otherwise keep growing every message, eventually going over
+# Groq's tokens-per-minute limit.
+MAX_HISTORY_MESSAGES = 10
+
+def recent_messages(state):
+    return state["messages"][-MAX_HISTORY_MESSAGES:]
+
 # Research node
 
 def research_node(state):
 
     result = research_agent.invoke({
-        "messages": state["messages"]
+        "messages": recent_messages(state)
     })
 
     return {
@@ -44,7 +53,7 @@ def research_node(state):
 def python_node(state):
 
     result = python_agent.invoke({
-        "messages": state["messages"]
+        "messages": recent_messages(state)
     })
 
     return {
@@ -56,7 +65,7 @@ def python_node(state):
 def personal_node(state):
 
     result = get_personal_agent().invoke({
-        "messages": state["messages"]
+        "messages": recent_messages(state)
     })
 
     return {
