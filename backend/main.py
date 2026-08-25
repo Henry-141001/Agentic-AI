@@ -32,7 +32,7 @@ class AgentState(TypedDict):
 # results (especially Gmail/Drive content) get added to the shared history
 # and would otherwise keep growing every message, eventually going over
 # Groq's tokens-per-minute limit.
-MAX_HISTORY_MESSAGES = 10
+MAX_HISTORY_MESSAGES = 6
 
 def recent_messages(state):
     return state["messages"][-MAX_HISTORY_MESSAGES:]
@@ -103,6 +103,18 @@ def router(state):
         "percentage"
     ]
 
+    research_words = [
+        "weather",
+        "forecast",
+        "search",
+        "news",
+        "wikipedia",
+        "who is",
+        "what is",
+        "current",
+        "latest"
+    ]
+
     for word in personal_words:
 
         if word in message:
@@ -113,10 +125,15 @@ def router(state):
         if word in message:
             return "python"
 
-    # No clear keyword this time - if we're mid-conversation with an
-    # agent, stay with it instead of jumping back to research. A message
-    # like "date before august 2026" only makes sense as a follow-up to
-    # whichever agent was just talking.
+    for word in research_words:
+
+        if word in message:
+            return "research"
+
+    # No clear keyword at all this time - if we're mid-conversation with
+    # an agent, stay with it instead of jumping back to research. A
+    # message like "date before august 2026" only makes sense as a
+    # follow-up to whichever agent was just talking.
     if state.get("last_agent"):
         return state["last_agent"]
 
