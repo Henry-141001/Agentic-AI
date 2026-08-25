@@ -68,9 +68,18 @@ sidebar) and approve access. You'll land on a plain "Google account
 connected" page — go back to the chat and try a Gmail/Drive message.
 
 **Good to know:** the connection is kept in memory, not saved to disk, so
-if the backend restarts (a new deploy, or Render's free tier waking up
-after being idle) you'll need to click "Connect Google Account" again.
-That's a normal trade-off for free hosting, not a bug.
+by default it's lost whenever the backend restarts (a new deploy, or
+Render's free tier waking up after being idle) - you'd need to click
+"Connect Google Account" again each time.
+
+**To avoid re-logging in constantly:** after connecting once, the success
+page shows a `GOOGLE_REFRESH_TOKEN` value. Copy it and add it as an
+environment variable in Render (see the Deploying table below). On every
+future restart, the server will use it to reconnect automatically -
+no browser login needed. This lasts about **7 days** at a time (a Google
+limit for apps that haven't gone through their full verification process,
+which isn't worth doing for a capstone project) - after that, one more
+manual login via "Connect Google Account" refreshes it for another 7 days.
 
 ## Run it locally
 
@@ -130,6 +139,7 @@ project to watch every LLM call, routing decision, and tool call.
    | `GOOGLE_CLIENT_SECRET` | (from Google Cloud Console) |
    | `BACKEND_PUBLIC_URL` | your Render URL, e.g. `https://agentic-ai-ek7w.onrender.com` |
    | `PORT` | `10000` |
+   | `GOOGLE_REFRESH_TOKEN` | *(optional, add after your first login - see "Connecting Gmail/Drive" above)* |
 
 4. Once deployed, copy the Render URL and make sure it's added as an
    **Authorized redirect URI** (as `{url}/auth/callback`) back in Google

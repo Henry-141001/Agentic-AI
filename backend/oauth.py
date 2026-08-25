@@ -2,6 +2,8 @@ import os
 
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
+from google.auth.transport.requests import Request as GoogleAuthRequest
+from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import Flow
 
 from tools import connect_google_account
@@ -87,7 +89,61 @@ def callback(request: Request):
 
     connect_google_account(flow.credentials)
 
+    refresh_token = flow.credentials.refresh_token
+
+    reconnect_note = ""
+
+    if refresh_token:
+        reconnect_note = f"""
+        <hr>
+        <p><strong>Optional - stay connected across restarts:</strong>
+        copy the value below and add it as <code>GOOGLE_REFRESH_TOKEN</code>
+        in your Render Environment settings. Without this, you'll need to
+        click "Connect Google Account" again every time the server has
+        been asleep.</p>
+        <textarea readonly rows="3" style="width:100%;font-family:monospace">{refresh_token}</textarea>
+        """
+
     return HTMLResponse(
         "<h2>Google account connected.</h2>"
         "<p>You can close this tab and go back to the chat.</p>"
+        f"{reconnect_note}"
     )
+
+
+def restore_google_connection():
+    """
+    Runs once when the server starts. If a GOOGLE_REFRESH_TOKEN is saved
+    in the environment (from a previous /auth/callback), reconnect
+    automatically instead of making the user log in again.
+    """
+
+    refresh_token = os.getenv("GOOGLE_REFRESH_TOKEN")
+
+    if not refresh_token:
+        return
+
+    try:
+
+        credentials = Credentials(
+            None,
+            refresh_token=refresh_token,
+            client_id=os.getenv("GOOGLE_CLIENT_ID"),
+            client_secret=os.getenv("GOOGLE_CLIENT_SECRET"),
+            token_uri="https://oauth2.googleapis.com/token",
+            scopes=SCOPES
+        )
+
+        credentials.refresh(GoogleAuthRequest())
+
+        connect_google_account(credentials)
+
+        print("Google account reconnected automatically using GOOGLE_REFRESH_TOKEN.")
+
+    except Exception as error:
+
+        print(
+            "Could not reconnect Google automatically - the saved "
+            f"refresh token may have expired ({error}). Visit /auth/login "
+            "to reconnect manually."
+        )

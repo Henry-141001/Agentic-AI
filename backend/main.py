@@ -12,7 +12,7 @@ from typing_extensions import TypedDict
 from langchain_core.messages import HumanMessage, AIMessage
 
 from agents import research_agent, python_agent, get_personal_agent
-from oauth import router as oauth_router
+from oauth import router as oauth_router, restore_google_connection
 
 # FastAPI
 
@@ -21,6 +21,8 @@ app = FastAPI(
 )
 
 app.include_router(oauth_router)
+
+restore_google_connection()
 
 # State
 
